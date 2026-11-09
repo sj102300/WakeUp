@@ -67,7 +67,14 @@ app.get("/api/regions", async (c) => c.json(await me(c.env).regions()));
 app.get("/api/routes", async (c) => {
   const q = c.req.query("q")?.trim();
   if (!q) return c.json({ routes: [], errors: [] });
-  return c.json(await searchRoutes(c.env, q, c.req.query("region") || undefined));
+  const region = c.req.query("region") || undefined;
+  const result = await searchRoutes(c.env, q, region);
+  if (region) {
+    // TAGO는 도시코드만 주므로 도시 이름으로 바꿔 표시
+    const name = (await me(c.env).regions().catch(() => [])).find((r) => r.code === region)?.name;
+    if (name) for (const r of result.routes) r.region = name;
+  }
+  return c.json(result);
 });
 
 app.get("/api/routes/:key/stops", async (c) => c.json(await me(c.env).getStops(c.req.param("key"))));

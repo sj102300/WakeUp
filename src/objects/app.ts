@@ -135,11 +135,47 @@ export class AppObject extends DurableObject<Env> {
 
   /** 공공 API 도달 여부 (10분 캐시, 공개 엔드포인트 남용 방지) */
   async diag() {
-    const cached = await this.kv.get<{ at: number; result: ReturnType<typeof summarize> }>("diag");
+    const cached = await this.kv.get<{ at: number; result: ReturnType<typeof summarize>; samples: unknown }>("diag:v2");
     if (cached && Date.now() - cached.at < 10 * 60 * 1000) return cached;
-    const fresh = { at: Date.now(), result: summarize(await probe(this.env)) };
-    await this.kv.put("diag", fresh);
+    const fresh = { at: Date.now(), result: summarize(await probe(this.env)), samples: await this.sampleRoutes() };
+    await this.kv.put("diag:v2", fresh);
     return fresh;
+  }
+
+  /** 공급자별 실제 응답이 파서와 맞는지: 검색 → 정류장 → 차량 (공개 데이터만 요약) */
+  private async sampleRoutes() {
+    const all = providers(this.env);
+    const cases = [
+      { p: all.seoul, q: "146", region: undefined },
+      { p: all.gyeonggi, q: "9407", region: undefined },
+      { p: all.tago, q: "5", region: "23" },
+    ];
+    return Promise.all(
+      cases.map(async ({ p, q, region }) => {
+        const out: Record<string, unknown> = { provider: p.id, query: q };
+        try {
+          const routes = await p.searchRoutes(q, region);
+          out.routes = routes.length;
+          const r = routes.find((x) => x.no === q) ?? routes[0];
+          if (!r) return out;
+          out.route = { no: r.no, start: r.start, end: r.end, region: r.region };
+          const id = r.key.slice(r.key.indexOf(":") + 1);
+          const stops = await p.getRouteStops(id);
+          out.stops = stops.length;
+          out.firstStop = { name: stops[0].name, order: stops[0].order, lat: stops[0].lat, lng: stops[0].lng };
+          const vehicles = await p.getVehicles(id);
+          out.vehicles = vehicles.length;
+          out.vehicleSample = vehicles.slice(0, 3).map((v) => ({
+            stopOrder: v.stopOrder,
+            hasCoords: v.lat !== undefined,
+            hasNo: Boolean(v.vehicleNo),
+          }));
+        } catch (e) {
+          out.error = maskSecrets(e instanceof Error ? e.message : String(e), this.env);
+        }
+        return out;
+      }),
+    );
   }
 
   // ---------- 즐겨찾기 ----------
