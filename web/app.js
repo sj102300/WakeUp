@@ -116,7 +116,10 @@ const views = {
       try {
         await api("/api/login", { method: "POST", body: { token: $app.querySelector("#token").value } });
         $nav.hidden = false;
-        setView("home");
+        window.addEventListener("error", (e) => toast(`오류: ${e.message}`, 6000));
+window.addEventListener("unhandledrejection", (e) => handleError(e.reason));
+
+setView("home");
       } catch (e) {
         handleError(e);
       }
@@ -140,8 +143,10 @@ const views = {
                   <button class="tag" data-del="${esc(f.id)}">삭제</button></li>`,
               )
               .join("")}</ul>`
-          : `<p class="muted">아직 없어요. "새 경로"에서 노선을 고르고 저장하세요.</p>`
-      }`;
+          : `<p class="muted">아직 없어요.</p>`
+      }
+      <button class="primary" id="newRoute">+ 새 경로</button>`;
+    $app.querySelector("#newRoute").onclick = () => setView("search");
     push.bind?.();
     if (trip) bindTrip(trip);
     for (const li of $app.querySelectorAll("[data-fav]")) {
@@ -161,25 +166,33 @@ const views = {
   },
 
   async search() {
-    const regions = await api("/api/regions").catch(() => []);
     $app.innerHTML = `
-      <div class="card">
-        <select id="region">
+      <form class="card" id="searchForm">
+        <label class="muted" for="q">노선 번호</label>
+        <input id="q" type="search" enterkeyhint="search" autocomplete="off" placeholder="예: 9407" />
+        <select id="region" style="margin-top:8px">
           <option value="">서울·경기</option>
-          ${regions.map((r) => `<option value="${esc(r.code)}">${esc(r.name)}</option>`).join("")}
         </select>
-        <div class="row" style="margin-top:8px">
-          <input id="q" class="grow" inputmode="search" placeholder="노선 번호 (예: 9407)" />
-        </div>
-        <button class="primary" id="go">검색</button>
-      </div>
+        <button class="primary" type="submit">검색</button>
+      </form>
       <div id="results"></div>`;
+    const $form = $app.querySelector("#searchForm");
+    const $region = $app.querySelector("#region");
+    // 도시 목록은 검색을 막지 않도록 나중에 채운다
+    api("/api/regions")
+      .then((regions) => $region.insertAdjacentHTML("beforeend", regions.map((r) => `<option value="${esc(r.code)}">${esc(r.name)}</option>`).join("")))
+      .catch(() => {});
+    $form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      $app.querySelector("#q").blur();
+      run().catch(handleError);
+    });
     const run = async () => {
       const q = $app.querySelector("#q").value.trim();
-      if (!q) return;
       const $r = $app.querySelector("#results");
+      if (!q) return toast("노선 번호를 입력하세요");
       $r.innerHTML = `<p class="muted">검색 중…</p>`;
-      const { routes, errors } = await api(`/api/routes?q=${encodeURIComponent(q)}&region=${$app.querySelector("#region").value}`);
+      const { routes, errors } = await api(`/api/routes?q=${encodeURIComponent(q)}&region=${encodeURIComponent($region.value)}`);
       $r.innerHTML = `
         ${errors.length ? `<p class="warn">일부 지역 검색 실패: ${esc(errors.join(", "))}</p>` : ""}
         ${routes.length ? "" : `<p class="muted">결과가 없어요</p>`}
@@ -191,8 +204,6 @@ const views = {
           .join("")}</ul>`;
       for (const li of $r.querySelectorAll("[data-i]")) li.onclick = () => setView("stops", { route: routes[li.dataset.i] });
     };
-    $app.querySelector("#go").onclick = () => run().catch(handleError);
-    $app.querySelector("#q").onkeydown = (e) => e.key === "Enter" && run().catch(handleError);
   },
 
   async stops({ route, boardStopId, destStopId, alertBefore = 1 }) {
@@ -266,7 +277,10 @@ const views = {
       const push = await ensurePush({ ask: true }).catch(() => "error");
       const r = await api("/api/trip", { method: "POST", body: { route, boardStopId: board.id, destStopId: dest.id, alertBefore, vehicleNo } });
       if (push !== "granted" || !r.push?.ok) toast("알림 설정을 확인하세요 — 추적은 시작했어요", 5000);
-      setView("home");
+      window.addEventListener("error", (e) => toast(`오류: ${e.message}`, 6000));
+window.addEventListener("unhandledrejection", (e) => handleError(e.reason));
+
+setView("home");
     };
     if (matched.length === 1) return start(matched[0].vehicleNo);
     $app.innerHTML = `
@@ -411,5 +425,8 @@ async function useFavorite(f) {
   }
   setView("stops", { route: f.route, boardStopId: r.board.stop.id, destStopId: r.dest.stop.id, alertBefore: f.alertBefore });
 }
+
+window.addEventListener("error", (e) => toast(`오류: ${e.message}`, 6000));
+window.addEventListener("unhandledrejection", (e) => handleError(e.reason));
 
 setView("home");
