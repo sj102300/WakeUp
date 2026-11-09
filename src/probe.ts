@@ -46,3 +46,22 @@ export async function probe(env: Partial<Env>) {
     }),
   );
 }
+
+/** 공개용 요약: 응답 본문 없이 도달 여부와 결과 코드만 */
+export function summarize(results: Awaited<ReturnType<typeof probe>>) {
+  return results.map((r) => {
+    const body = "body" in r ? (r.body ?? "") : "";
+    const code =
+      /"(?:resultCode|headerCd)"\s*:\s*"?(\w+)/.exec(body)?.[1] ??
+      /<(?:returnReasonCode|resultCode|headerCd)>(\w+)</.exec(body)?.[1] ??
+      null;
+    return {
+      name: r.name,
+      hasKey: r.hasKey,
+      reachable: "status" in r,
+      status: "status" in r ? r.status : null,
+      code,
+      ms: r.ms,
+    };
+  });
+}

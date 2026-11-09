@@ -13,12 +13,8 @@ const kp = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" 
 const pub = Buffer.from(await crypto.subtle.exportKey("raw", kp.publicKey)).toString("base64url");
 const { d } = await crypto.subtle.exportKey("jwk", kp.privateKey);
 
-for (const [name, value] of [
-  ["VAPID_PUBLIC_KEY", pub],
-  ["VAPID_PRIVATE_KEY", d],
-  ["VAPID_SUBJECT", subject],
-]) {
-  const r = spawnSync("npx", ["wrangler", "secret", "put", name], { input: value, stdio: ["pipe", "inherit", "inherit"] });
-  if (r.status !== 0) process.exit(r.status ?? 1);
-}
+// 공개키·개인키가 어긋나지 않도록 한 번에 저장
+const input = JSON.stringify({ VAPID_PUBLIC_KEY: pub, VAPID_PRIVATE_KEY: d, VAPID_SUBJECT: subject });
+const r = spawnSync("npx", ["wrangler", "secret", "bulk"], { input, stdio: ["pipe", "inherit", "inherit"] });
+if (r.status !== 0) process.exit(r.status ?? 1);
 console.log("VAPID secrets saved");

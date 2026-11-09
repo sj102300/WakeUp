@@ -1,5 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { type Env, maskSecrets } from "../env";
+import { probe, summarize } from "../probe";
 import { type RouteInfo, providers, resolve } from "../providers";
 import { type PushSubscriptionJSON, type Vapid, sendPush } from "../push/webpush";
 import { Route, type Stop, type TripConfig, type TripEvent, type TripState, type VehicleObs, cancel, initialState, step } from "../trip/engine";
@@ -130,6 +131,15 @@ export class AppObject extends DurableObject<Env> {
         };
       })
       .sort((a, b) => (a.distanceM ?? 1e9) - (b.distanceM ?? 1e9));
+  }
+
+  /** 공공 API 도달 여부 (10분 캐시, 공개 엔드포인트 남용 방지) */
+  async diag() {
+    const cached = await this.kv.get<{ at: number; result: ReturnType<typeof summarize> }>("diag");
+    if (cached && Date.now() - cached.at < 10 * 60 * 1000) return cached;
+    const fresh = { at: Date.now(), result: summarize(await probe(this.env)) };
+    await this.kv.put("diag", fresh);
+    return fresh;
   }
 
   // ---------- 즐겨찾기 ----------

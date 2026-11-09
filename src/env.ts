@@ -2,7 +2,6 @@ import type { AppObject } from "./objects/app";
 
 export interface Env {
   APP: DurableObjectNamespace<AppObject>;
-  ASSETS: Fetcher;
   DATA_GO_KR_API_KEY?: string;
   SEOUL_BUS_API_KEY?: string;
   APP_ACCESS_TOKEN?: string;

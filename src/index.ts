@@ -4,6 +4,7 @@ import { type Env, REQUIRED_SECRETS, maskSecrets } from "./env";
 import { probe } from "./probe";
 import { type RouteInfo, searchRoutes } from "./providers";
 import { b64url } from "./push/webpush";
+import { serveStatic } from "./static";
 
 export { AppObject } from "./objects/app";
 
@@ -28,6 +29,8 @@ app.onError((err, c) => c.json({ error: maskSecrets(err.message, c.env) }, 500))
 app.get("/api/health", (c) =>
   c.json({ ok: true, missingSecrets: REQUIRED_SECRETS.filter((k) => !c.env[k]) }),
 );
+
+app.get("/api/diag", async (c) => c.json(await me(c.env).diag()));
 
 app.post("/api/login", async (c) => {
   const { token } = await c.req.json<{ token?: string }>();
@@ -118,5 +121,6 @@ app.get("/api/history", async (c) => c.json(await me(c.env).history()));
 app.get("/api/history/:id", async (c) => c.json(await me(c.env).tripLog(c.req.param("id"))));
 
 app.all("/api/*", (c) => c.json({ error: "not found" }, 404));
+app.get("*", (c) => serveStatic(new URL(c.req.url).pathname) ?? c.text("not found", 404));
 
 export default app;
