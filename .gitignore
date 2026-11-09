@@ -10,3 +10,6 @@ dist/
 *.sqlite
 *.sqlite-*
 *.db
+.dev.vars
+.dev.vars.*
+.wrangler/

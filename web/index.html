@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="WakeUp" />
+  <meta name="theme-color" content="#0f172a" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/icon-180.png" />
+  <link rel="stylesheet" href="/style.css" />
+  <title>WakeUp</title>
+</head>
+<body>
+  <header>
+    <h1>WakeUp</h1>
+    <nav id="nav" hidden>
+      <button data-go="home">홈</button>
+      <button data-go="search">새 경로</button>
+      <button data-go="history">기록</button>
+    </nav>
+  </header>
+  <main id="app"></main>
+  <div id="toast" hidden></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

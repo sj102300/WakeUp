@@ -7,23 +7,23 @@ const TARGETS = [
     name: "tago",
     url: (k: string) =>
       `https://apis.data.go.kr/1613000/BusRouteInfoInqireService/getCtyCodeList?serviceKey=${k}&_type=json`,
-    key: (e: Env) => e.DATA_GO_KR_API_KEY,
+    key: (e: Partial<Env>) => e.DATA_GO_KR_API_KEY,
   },
   {
     name: "gyeonggi",
     url: (k: string) =>
       `https://apis.data.go.kr/6410000/busrouteservice/v2/getBusRouteListv2?serviceKey=${k}&keyword=1&format=json`,
-    key: (e: Env) => e.DATA_GO_KR_API_KEY,
+    key: (e: Partial<Env>) => e.DATA_GO_KR_API_KEY,
   },
   {
     name: "seoul",
     url: (k: string) =>
       `http://ws.bus.go.kr/api/rest/busRouteInfo/getBusRouteList?serviceKey=${k}&strSrch=1&resultType=json`,
-    key: (e: Env) => e.SEOUL_BUS_API_KEY ?? e.DATA_GO_KR_API_KEY,
+    key: (e: Partial<Env>) => e.SEOUL_BUS_API_KEY ?? e.DATA_GO_KR_API_KEY,
   },
 ];
 
-export async function probe(env: Env) {
+export async function probe(env: Partial<Env>) {
   return Promise.all(
     TARGETS.map(async (t) => {
       const raw = t.key(env);

@@ -3,5 +3,14 @@
   "name": "wakeup",
   "main": "src/index.ts",
   "compatibility_date": "2025-09-01",
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+  "assets": {
+    "directory": "./web",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "APP", "class_name": "AppObject" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AppObject"] }]
 }
